@@ -10,6 +10,9 @@
   "publishConfig": {
     "@hippodamia:registry": "https://npm.pkg.github.com/hippodamia"
   },
+  "repository": {
+    "url": "https://github.com/Hippodamia/core.git"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
