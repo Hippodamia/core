@@ -3,7 +3,7 @@ import { Track } from "./Track";
 import { HorseStatus, UserInfo } from "./types";
 import { Race } from "./Race";
 
-interface HorseProperty {
+export interface HorseProperty {
     // 0-20的数值
     speed: number;
     //1为单位的增长概率的倍率
@@ -15,7 +15,9 @@ interface HorseProperty {
 }
 
 export class Horse {
-    constructor(user: UserInfo, display: string) {
+    race: Race;
+    constructor(race: Race, user: UserInfo, display: string) {
+        this.race = race;
         this.user = user;
         this.step = 1;
         this.buffContainer = new BuffContainer<HorseProperty>();
@@ -51,16 +53,16 @@ export class Horse {
 
     //todo 让property能够被直接更改子值
 
-    public onHorseRoundStart(race: Race, track: Track) {
-        this.buffContainer.emit("horse.round.start", race, this);
-        race.components.forEach((x) => x.emit("horse.round.start", race, this));
+    public onHorseRoundStart(track: Track) {
+        this.buffContainer.emit("horse.round.start", this.race, this);
+        this.race.components.forEach((x) => x.emit("horse.round.start", this.race, this));
     }
 
-    public onHorseRoundEnd(race: Race, track: Track) {
-        this.buffContainer.emit("horse.round.end", race, this);
-        race.components.forEach((x) => x.emit("horse.round.end", race, this));
+    public onHorseRoundEnd(track: Track) {
+        this.buffContainer.emit("horse.round.end", this.race, this);
+        this.race.components.forEach((x) => x.emit("horse.round.end", this.race, this));
         //刷新冷却回合
-        this.buffContainer.refresh(race, this);
+        this.buffContainer.refresh(this.race, this);
     }
 
     /**
@@ -70,11 +72,11 @@ export class Horse {
     public next(race: Race, track: Track) {
         let step = this.step;
 
-        this.onHorseRoundStart(race, track);
+        this.onHorseRoundStart(track);
 
         this.move(this.getRandomSteps());
 
-        this.onHorseRoundEnd(race, track);
+        this.onHorseRoundEnd(track);
 
         this.last_moved = this.step - step;
 
@@ -82,20 +84,25 @@ export class Horse {
     }
 
     /**
-     * 移动
-     * @param step
+     * 所有的移动必须使用move来进行移动，移动有一个「无视异常状态」的选项
+     * @param step 移动的步数
+     * @param ignoreStatus 是否无视异常状态
      */
-    public move(step: number) {
+    public move(step: number, ignoreStatus: boolean = false) {
         let move = step;
         if (this.Property.status == HorseStatus.NORMAL) {
             //计算buff是否导致无法移动
-            let canMove = true;
+            let canMove = true || ignoreStatus;
+
+            //canMove = this.buffContainer.emit
             //canMove = this.buffs.call<boolean, any>("canMove", true, this, {race, horse: this, track});
             if (canMove) {
-                //move = this.buffs.call<number, any>("onMove", move, this, {race, horse: this, track});
+
+                this.step += move;
+                this.buffContainer.emit("horse.moved", this.race, this, move);
+                this.race.components.forEach((x) => x.emit("horse.moved", this.race, this, move));
             }
         }
-        this.step += move;
     }
 
     get display() {
@@ -117,6 +124,22 @@ export class Horse {
             return 3;
         } else {
             return randomNumber < 0.5 ? 1 : 2;
+        }
+    }
+
+    toString() {
+        return JSON.stringify(this.simplify());
+    }
+
+    simplify() {
+        return {
+            property: this.Property,
+            step: this.step,
+            last_moved: this.last_moved,
+            buffs: this.buffContainer._buffs,
+            user: this.user,
+            raw_display: this.raw_display,
+
         }
     }
 }

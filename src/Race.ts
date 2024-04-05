@@ -30,14 +30,14 @@ class Race {
     this.mode = config.mode;
   }
 
-  onRaceStart() {}
+  onRaceStart() { }
 
   private onRaceRoundStart() {
-    this.components.forEach((x) => x.emit("round.end", this));
+    this.components.forEach((x) => x.emit("round.end", this, this.round + 1));
   }
 
   private onRaceRoundEnd() {
-    this.components.forEach((x) => x.emit("round.end", this));
+    this.components.forEach((x) => x.emit("round.end", this, this.round));
   }
   /**
    * Joins a user to the game.
@@ -62,11 +62,11 @@ class Race {
       let track: Track;
       this.tracks.push((track = new Track()));
 
-      let horse = new Horse(player, player.display);
+      let horse = new Horse(this, player, player.display);
       horse.track = track;
       track.horses = [horse];
 
-      //todo 允许赛场自定义基础速度与其他基础属性
+      // TODO 允许赛场自定义基础速度与其他基础属性
     }
   }
 
@@ -140,6 +140,25 @@ class Race {
       winners: horses.filter((x) => x.won),
       ranks: horses.sort((a, b) => b.step - a.step),
     };
+  }
+
+  public toString() {
+
+    return JSON.stringify(this.simplify(), undefined, 2);
+  }
+
+  private simplify() {
+    return {
+      horses: this.getHorses().map((x) => x.simplify()),
+      players: this.players,
+      round: this.round,
+      ended: this.ended,
+      logs: this.logs,
+      mode: this.mode,
+      config: this.config,
+      isStarted: this.isStarted,
+      components: this.components.map((c) => c.name),
+    }
   }
 }
 

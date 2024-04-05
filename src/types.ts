@@ -37,22 +37,45 @@ interface BuffBase {
 }
 
 export type HipEmitterTypes = {
-  "race.start": () => void;
-  "round.start": (race: Race) => void;
-  "round.end": (race: Race) => void;
-  "horse.round.start": (race: Race, horse: Horse) => void;
-  "horse.round.end": (race: Race, horse: Horse) => void;
-  "horse.moved": (race: Race, moved: number) => void;
-  "segment.round.start": (race: Race, segment: Segment) => void;
-  "segment.round.end": (race: Race, segment: Segment) => void;
-  "track.round.start": (race: Race, track: Track) => void;
-  "track.round.end": (race: Race, track: Track) => void;
+
+  // race events
+  "race.start": (race: Race) => void; /** 赛事开始 */
+
+  // round events
   /**
-   * 效果结束
-   * @param ctx
-   * @returns
+   * 新一轮开始
+   * @param round 当前轮数 
    */
-  "buff.end": (ctx: { race: Race; horse: Horse; buff: BuffBase }) => void;
+  "round.start": (race: Race, round: number) => void; /** 新一轮开始 */
+  "round.end": (race: Race, round: number) => void; /** 新一轮结束 */
+
+  // horse events
+  "horse.round.start": (race: Race, horse: Horse) => void;  /** 新一轮的选手回合开始 */
+  "horse.round.end": (race: Race, horse: Horse) => void;  /** 新一轮的选手回合结束 */
+
+    /**
+   * @param moved 尝试移动距离
+   * @returns 是否允许移动
+   */
+  "horse.move": (race: Race, horse: Horse, move: number) => boolean; /** 选手移动 */
+  /**
+   * @param moved 真实移动距离
+   */
+  "horse.moved": (race: Race, horse: Horse, moved: number) => void; /** 选手移动完毕 */
+
+  // segment events
+  "segment.round.start": (race: Race, segment: Segment) => void; /** 新一轮的赛道格子开始 */
+  "segment.round.end": (race: Race, segment: Segment) => void; /** 新一轮的赛道格子结束 */
+
+  // track events
+  "track.round.start": (race: Race, track: Track) => void; /** 新一轮的赛道开始 */
+  "track.round.end": (race: Race, track: Track) => void; /** 新一轮的赛道结束 */
+
+  // buff events
+  "buff.end": (ctx: { race: Race; horse: Horse; buff: BuffBase }) => void; /** 效果结束 */
+  "buff.effect" : (ctx: { race: Race; horse: Horse; buff: BuffBase }) => void; /** 效果作用于目标时 */
+
+
   [key: string]: (...args: any[]) => void;
 };
 

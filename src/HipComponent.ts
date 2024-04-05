@@ -4,7 +4,9 @@ import { HipEmitterTypes } from "./types";
 /**
  * 组件本质是一个事件触发器
  */
-export class HipComponent extends EventEmitter<HipEmitterTypes> { }
+export interface HipComponent extends EventEmitter<HipEmitterTypes> {
+  name: string;
+}
 
 /**
  * 玩法大部分是内容提供

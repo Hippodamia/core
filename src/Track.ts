@@ -2,6 +2,7 @@ import {BuffContainer} from "./BuffContainer";
 import {Horse} from "./Horse";
 import {Segment} from "./Segment";
 import {Race} from "./Race";
+import { json } from "stream/consumers";
 
 export class Track {
     //初始化轨道内部的Segment(格)
@@ -33,5 +34,12 @@ export class Track {
             race.components.forEach(c=>c.emit("track.round.end", race, this))
             horse.next(race,this);
         }
+    }
+
+    toString() {
+        return JSON.stringify({
+            segments: this.segments.map(s=>s.toString()),
+            horses: this.horses.map(h=>h.toString()),
+        })
     }
 }
