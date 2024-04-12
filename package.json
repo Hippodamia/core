@@ -1,5 +1,6 @@
 {
   "name": "@hippodamia/core",
+  "private":false,
   "version": "1.0.2",
   "description": "",
   "main": "./dist/index.js",
@@ -7,14 +8,11 @@
   "scripts": {
     "test": "jest"
   },
-  "publishConfig": {
-    "@hippodamia:registry": "https://npm.pkg.github.com/hippodamia"
-  },
   "repository": {
     "url": "https://github.com/Hippodamia/core.git"
   },
   "keywords": [],
-  "author": "",
+  "author": "heer_harmog",
   "license": "ISC",
   "packageManager": "pnpm@8.14.3+sha1.872b21adeaae4e71acd5c551ba848d927d6aa446",
   "devDependencies": {
