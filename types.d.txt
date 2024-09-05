@@ -1,0 +1,300 @@
+declare module "Segment" {
+    import { BuffContainer } from "BuffContainer";
+    export class Segment {
+        constructor();
+        buffs: BuffContainer<any>;
+    }
+}
+declare module "utils" {
+    export function shuffle(array: any[]): any[];
+}
+declare module "HipComponent" {
+    import { EventEmitter } from "eventemitter3";
+    import { HipEmitterTypes } from "types";
+    /**
+     * 组件本质是一个事件触发器
+     */
+    export interface HipComponent extends EventEmitter<HipEmitterTypes> {
+        name: string;
+    }
+    /**
+     * 玩法大部分是内容提供
+     */
+    export interface IContentManager<ContentType extends IContent> {
+        getRandom: (filter: (content: ContentType) => boolean) => ContentType;
+        getAll: () => ContentType[];
+    }
+    export interface IContent {
+        name: string;
+        desc: string;
+    }
+}
+declare module "Race" {
+    import { Track } from "Track";
+    import { RaceLog, UserInfo } from "types";
+    import { Horse } from "Horse";
+    import { HipComponent } from "HipComponent";
+    export interface RaceConfig {
+        speed: number;
+        length: number;
+        mode: "pure" | "random" | "contract";
+    }
+    class Race {
+        tracks: Track[];
+        round: number;
+        components: HipComponent[];
+        logs: RaceLog[];
+        players: (UserInfo & {
+            display: string;
+        })[];
+        ended: boolean;
+        mode: RaceConfig["mode"];
+        config: RaceConfig;
+        isStarted: boolean;
+        constructor(config?: RaceConfig);
+        onRaceStart(): void;
+        private onRaceRoundStart;
+        private onRaceRoundEnd;
+        /**
+         * Joins a user to the game.
+         *
+         * @param user - The user information.
+         * @param display - The display name for the user.
+         * @return Returns true if the user is successfully joined, false otherwise.
+         */
+        join(user: UserInfo, display: string): boolean;
+        start(): void;
+        next(): void;
+        getHorses(): Horse[];
+        getOthers(excludes: Horse[]): Horse[];
+        pushLog(horse: Horse, content: string): void;
+        getRaceResult(): {
+            winners: {
+                won: boolean;
+                step: number;
+                user: UserInfo;
+                display: string;
+            }[];
+            ranks: {
+                won: boolean;
+                step: number;
+                user: UserInfo;
+                display: string;
+            }[];
+        };
+        toString(): string;
+        private simplify;
+    }
+    export { Race };
+}
+declare module "Track" {
+    import { Horse } from "Horse";
+    import { Segment } from "Segment";
+    import { Race } from "Race";
+    export class Track {
+        constructor(length?: number);
+        horses: Horse[];
+        segments: Segment[];
+        addHorse(horse: Horse): void;
+        removeHorse(horse: Horse): void;
+        next(race: Race): void;
+        toString(): string;
+    }
+}
+declare module "Horse" {
+    import { BuffContainer } from "BuffContainer";
+    import { Track } from "Track";
+    import { HorseStatus, UserInfo } from "types";
+    import { Race } from "Race";
+    export interface HorseProperty {
+        speed: number;
+        effect_resistance: number;
+        luck: number;
+        status: HorseStatus;
+        display: string;
+    }
+    export class Horse {
+        race: Race;
+        constructor(race: Race, user: UserInfo, display: string);
+        track?: Track;
+        user: UserInfo;
+        buffContainer: BuffContainer<HorseProperty>;
+        step: number;
+        raw_display: string;
+        last_moved: number;
+        private _property;
+        get Property(): HorseProperty;
+        set Property(value: HorseProperty);
+        onHorseRoundStart(track: Track): void;
+        onHorseRoundEnd(track: Track): void;
+        /**
+         * Executes a move for the horse character, taking into account any active buffs.
+         * @return 距离上一次移动的步数
+         */
+        next(race: Race, track: Track): number;
+        /**
+         * 所有的移动必须使用move来进行移动，移动有一个「无视异常状态」的选项
+         * @param step 移动的步数
+         * @param ignoreStatus 是否无视异常状态
+         */
+        move(step: number, ignoreStatus?: boolean): void;
+        get display(): string;
+        private getRandomSteps;
+        toString(): string;
+        simplify(): {
+            property: HorseProperty;
+            step: number;
+            last_moved: number;
+            buffs: import("types").BuffWithTime<HorseProperty>[];
+            user: UserInfo;
+            raw_display: string;
+        };
+    }
+}
+declare module "types" {
+    import { Horse } from "Horse";
+    import { Race } from "Race";
+    import { EventEmitter } from "eventemitter3";
+    import { Track } from "Track";
+    import { Segment } from "Segment";
+    interface RaceLog {
+        player: string;
+        content: string;
+        round: number;
+    }
+    interface UserInfo {
+        name?: string;
+        id: string;
+    }
+    enum EffectType {
+        Positive = 0,
+        Negative = 1,
+        Neutral = 2
+    }
+    enum HorseStatus {
+        NORMAL = "normal",
+        DEAD = "dead",
+        LEFT = "left"
+    }
+    interface BuffBase {
+        name: string;
+        type: EffectType;
+        desc: string;
+        doc?: string;
+        canStack?: boolean;
+        priority?: number;
+    }
+    export type HipEmitterTypes = {
+        "race.start": (race: Race) => void; /** 赛事开始 */
+        /**
+         * 新一轮开始
+         * @param round 当前轮数
+         */
+        "round.start": (race: Race, round: number) => void; /** 新一轮开始 */
+        "round.end": (race: Race, round: number) => void; /** 新一轮结束 */
+        "horse.round.start": (race: Race, horse: Horse) => void; /** 新一轮的选手回合开始 */
+        "horse.round.end": (race: Race, horse: Horse) => void; /** 新一轮的选手回合结束 */
+        /**
+       * @param moved 尝试移动距离
+       * @returns 是否允许移动
+       */
+        "horse.move": (race: Race, horse: Horse, move: number) => boolean; /** 选手移动 */
+        /**
+         * @param moved 真实移动距离
+         */
+        "horse.moved": (race: Race, horse: Horse, moved: number) => void; /** 选手移动完毕 */
+        "segment.round.start": (race: Race, segment: Segment) => void; /** 新一轮的赛道格子开始 */
+        "segment.round.end": (race: Race, segment: Segment) => void; /** 新一轮的赛道格子结束 */
+        "track.round.start": (race: Race, track: Track) => void; /** 新一轮的赛道开始 */
+        "track.round.end": (race: Race, track: Track) => void; /** 新一轮的赛道结束 */
+        "buff.end": (ctx: {
+            race: Race;
+            horse: Horse;
+            buff: BuffBase;
+        }) => void; /** 效果结束 */
+        "buff.effect": (ctx: {
+            race: Race;
+            horse: Horse;
+            buff: BuffBase;
+        }) => void; /** 效果作用于目标时 */
+        [key: string]: (...args: any[]) => void;
+    };
+    type Buff<T> = BuffBase & {
+        listeners?: {
+            [K in keyof HipEmitterTypes]?: HipEmitterTypes[K];
+        };
+        listener?: EventEmitter<HipEmitterTypes>;
+        modifier?: (target: T, buff: BuffWithTime<T>) => T;
+    };
+    type BuffWithTime<T> = Buff<T> & {
+        times: number;
+        remains: number;
+        stacks: number;
+    };
+    enum RaceEvent {
+        RaceStart = 0,
+        RoundStart = 1,
+        Track = 2,
+        Segment = 3,
+        TrackEnd = 4,
+        RoundEnd = 5,
+        Move = 6
+    }
+    enum RaceMode {
+        Pure = "pure",
+        RandomEvent = "random",
+        Contract = "contract"
+    }
+    export type { UserInfo, Buff, BuffWithTime, RaceLog };
+    export { EffectType, HorseStatus, RaceEvent, RaceMode };
+}
+declare module "BuffContainer" {
+    import { Buff, BuffWithTime, HipEmitterTypes } from "types";
+    import { Horse } from "Horse";
+    import { Race } from "Race";
+    export class BuffContainer<ModifierType> {
+        _buffs: BuffWithTime<ModifierType>[];
+        /**
+         * Adds a buff to the buff list.
+         * @param buff - The buff to be added. 待添加的buff
+         * @param times - The number of times the buff should be added. buff持续时间
+         * @param stacks - stacks 层数
+         */
+        add(buff: Buff<ModifierType>, times: number, stacks?: number): void;
+        /**
+         * Removes a buff from the buff list.
+         * @param buff
+         */
+        remove(buff: Buff<ModifierType>): void;
+        /**
+         * Sorts the list of buffs by priority.
+         */
+        sortByPriority(): void;
+        /**
+         * Applies each buff to the target in order.
+         */
+        getModified(target: ModifierType): ModifierType;
+        get(): BuffWithTime<ModifierType>[];
+        /**
+         * Refresh the buff list and count down the remaining time.
+         */
+        refresh(race: Race, horse: Horse): void;
+        /**
+         * Emits an event to all buff listeners.
+         * @param event 事件名称
+         * @param args 事件参数
+         */
+        emit<K extends keyof HipEmitterTypes>(event: K, ...args: Parameters<HipEmitterTypes[K]>): void;
+    }
+}
+declare module "index" {
+    export * from "Horse";
+    export * from "Race";
+    export * from "BuffContainer";
+    export * from "HipComponent";
+    export * from "Segment";
+    export * from "Track";
+    export * from "utils";
+    export * from "types";
+}
+//# sourceMappingURL=types.d.ts.map
