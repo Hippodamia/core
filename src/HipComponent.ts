@@ -9,7 +9,7 @@ export interface HipComponent extends EventEmitter<HipEmitterTypes> {
 }
 
 /**
- * 玩法大部分是内容提供
+ * 内容管理，必须要提供获取一个随机内容和获取全部内容的实现
  */
 export interface IContentManager<ContentType extends IContent> {
   getRandom: (filter: (content: ContentType) => boolean) => ContentType;

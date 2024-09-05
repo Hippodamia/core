@@ -7,7 +7,7 @@ import { HipComponent } from "./HipComponent";
 export interface RaceConfig {
   speed: number;
   length: number;
-  mode: "pure" | "random" | "contract";
+  mode: string;
 }
 
 class Race {
@@ -100,7 +100,7 @@ class Race {
     ) {
       //win
       this.ended = true;
-      console.log("WINNER WINNER CHICKEN DINNER!");
+      //console.log("WINNER WINNER CHICKEN DINNER!");
     }
   }
 
