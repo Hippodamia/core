@@ -16,7 +16,7 @@ export interface HorseProperty {
 
 export class Horse {
     race: Race;
-    constructor(race: Race, user: UserInfo, display: string) {
+    constructor(race: Race, user: UserInfo, display: string = '马') {
         this.race = race;
         this.user = user;
         this.step = 1;
@@ -94,11 +94,16 @@ export class Horse {
         return this.Property.display;
     }
 
+    /**
+     * 使用sigmoid函数返回正态区间内的一个随机步数，取决于玩家的速度
+     * 速度在0-20内会呈现以sigmoid函数为均值曲线的取值，而大于20的每1点速度都会提升玩家1%的概率额外增加一步
+     * @returns 随机步数
+     */
     public getRandomSteps() {
         function sigmoid(x: number) {
-            return 1 / (1 + Math.exp(-(x- 10) * 0.52)) * 3;
+            return 1 / (1 + Math.exp(-(x - 10) * 0.52)) * 3;
         }
-        function normalDistribution(mean:number, stdDev:number) {
+        function normalDistribution(mean: number, stdDev: number) {
             let u = 0, v = 0;
             while (u === 0) u = Math.random(); // Converting [0,1) to (0,1)
             while (v === 0) v = Math.random();
@@ -108,9 +113,16 @@ export class Horse {
         }
         const speed = this.Property.speed;
 
-        let delta = normalDistribution(0,(-0.53*(sigmoid(speed)-1.5)^2+1.3)^2)
+        const sigmoid_value = sigmoid(Math.min(speed, 20));
 
-        return Math.round(sigmoid(speed) + delta)
+        let delta = normalDistribution(0, (-0.53 * (sigmoid_value - 1.5) ^ 2 + 1.3) ^ 2)
+
+        //大于20的每1点速度都会提升玩家1%的概率额外增加一步
+        if (Math.random() < (speed - 20) / 100) {
+            delta += 1;
+        }
+
+        return Math.round(sigmoid_value + delta)
     }
 
     private onHorseRoundStart(track: Track) {
@@ -142,5 +154,29 @@ export class Horse {
             user: this.user,
             raw_display: this.raw_display,
         }
+    }
+
+    /**
+     * 覆盖or增加式改变玩家的属性，如果isCover为true，则覆盖所有属性，否则只覆盖存在的属性
+     * @param value 变动查询变量
+     * @param isCover 是否覆盖,默认为false,即默认为增量模式
+     */
+    public modify(value: Partial<HorseProperty>, isCover: boolean = false) {
+        if (isCover) {
+            this.Property = {
+                ...this._property,
+                ...value
+            }
+        } else {
+            for (const key in value) {
+                if (key in this._property) {
+                    if (typeof (value[key as keyof HorseProperty]) == 'number')
+                        (this._property as any)[key] += value[key as keyof HorseProperty];
+                    else
+                        (this._property as any)[key] = value[key as keyof HorseProperty];
+                }
+            }
+        }
+
     }
 }
